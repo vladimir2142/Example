@@ -1,4 +1,5 @@
 import datetime
+from unicodedata import name
 import uvicorn
 import logging
 import sqlite3
@@ -10,7 +11,8 @@ from pydantic import BaseSettings
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.ext.asyncio import engine
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from data_base.init_db import create_table 
+from data_base.db_func import exist_table,db_insert, db_get_info
+from operation.operations import check_dublicate
 
 class Settings(BaseSettings):
     sqlite_config: str
@@ -34,6 +36,11 @@ class Item(BaseModel):
     name: str
     info: dict
 
+class Add_info(BaseModel):
+    name:str
+    bith_date:str
+    login:str 
+
 app = FastAPI()
 
 @app.get('/test/{name}')
@@ -50,8 +57,18 @@ def post_request(item:Item):
     return item
 
 @app.post('/db_write/')
-async def add_info(session: AsyncSession = Depends(get_session)):
-    await create_table(session)
+async def add_info(info:Add_info ,session: AsyncSession = Depends(get_session)):
+    await exist_table(session)
+    if await check_dublicate(info,session):
+        return "Данный пользователь уже существует"
+    else:
+        await db_insert(info,session)
+
+@app.get('/db_find/{name}')
+async def find_by_name(name:str,session: AsyncSession = Depends(get_session)):
+    return await db_get_info(name,session)
+
+
 
 
 #Starting local server 
