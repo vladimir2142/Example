@@ -47,4 +47,8 @@ async def db_get_info(name,session:AsyncSession):
     """
     result = await session.execute(sql_text)
     await session.commit()
-    return result.all()
+    list_users=result.all()
+    if len(list_users)==0:
+        return 'Нет пользователей с таким именем'
+    else: 
+        return list_users
